@@ -159,8 +159,8 @@ def main_menu():
             }
             while True:
                 print('These are the current options:')
-                print('1. Look for head to head information on the Scottish League.')
-                print('2. Restart the program')
+                print('1. Look for head to head information on the Scottish League;')
+                print('2. Restart the program;')
                 print('3. Exit')
                 options_input = input('Please, choose one of the available options: ')
                 if options_input == '1':
