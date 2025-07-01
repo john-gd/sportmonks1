@@ -2,6 +2,7 @@ import requests
 import json
 import webbrowser
 import time
+import datetime
 
 
 SAMPLE_API_TOKEN = 'WwG6ytiCOhUoog4iCdPZjiGxLOqOhzoCgNWVuXhOjj1ToOH0b02yhcow6Zgl' #remember to change this later
@@ -27,6 +28,7 @@ team_ids = {
     '496':'St. Mirren',
     '734':'St. Johnstone'
 }
+today = datetime.date.today()
 
 def test_request(api_token):
     #this is the base api token filters verifier of sportmonks website
@@ -65,7 +67,8 @@ def select_team_id():
         #print(f'{i+1}. {v}')
 
     while True:
-        choose_team = input('pick a team:\n')
+        print('Pick a team to view the requested information.')
+        choose_team = input('Type in the number of the team:\n')
         if not choose_team.isdigit():
             print('Pick one of the available teams in the list.')
             continue
@@ -79,7 +82,8 @@ def select_team_id():
                 if selected_team_name == v:
                     return ids
         else:
-            print('error')
+            print('Choose one of the available teams in the list!')
+            continue
             
 
 
@@ -115,7 +119,7 @@ def head_to_head_request():
             hth_url = f'{URL}/football/fixtures/head-to-head/{team_id_1}/{team_id_2}'
             return hth_url
 
-def main_request(current_url, current_params):
+def head_to_head_info(current_url, current_params):
     response = requests.get(current_url, params=current_params)
     parsed_response = response.json()
     print(response.url)
@@ -132,50 +136,96 @@ def main_request(current_url, current_params):
     #print(json.dumps(parsed_response, indent=2))
 #&include=events shows the highlights of the match.
 
+def get_schedules_by_id():
+    available_teams = team_ids.values()
+    for i, v in enumerate(available_teams):
+        print(f'{i+1}. {v}')
+    pick_id = select_team_id()
+    schedules_url = f'{URL}/football/schedules/teams/{pick_id}' #do not forget to get the team name on the dict
+    response = requests.get(schedules_url, current_params)
+    print()
+    print(f'Fetching information from: {response.url}')
+    print('-'*70)
+    parsed_response = response.json()
+    schedule_items = parsed_response.get('data')
+    sorted_schedule_items = sorted(schedule_items,
+                                   key=lambda item: datetime.datetime.strptime(item['starting_at'], '%Y-%m-%d') 
+                                     if 'starting_at' in item and item['starting_at'] else datetime.datetime.min # Fallback for missing/null date
+                                    )
+    for rounds in sorted_schedule_items:
+        round = rounds.get('rounds')
+        if rounds['id'] == 77476925:
+            print(f'Getting games for the {rounds["name"]}.')
+            print('These are the next games for the selected team:') 
+            for fixtures in round:
+                fixture = fixtures.get('fixtures')
+                for info in fixture:                    
+                    print(info['name'])
+                    print(info['starting_at'])
+                    print('-'*25)
+    
+
 def main_menu():
     print('Hello, how would you like to be called?')
     name_input = input('Insert your name here: ')
     print('-'*65)
     print(f'Hi, {name_input}. Welcome to the Football Information Retriever program') 
-    print('-'*65)   
+    print('-'*65)  
+
     while True:
         print(f'Do you already possess an api key to use with our system?')
         yn_input = input('Y/N: ').lower()
+
         if yn_input in 'n':
             print('Redirecting to sportmonks website to create account and your api key\n')
             webbrowser.open(sportmonks_create_account)
             print('Once you have your api key, simply type "y" and paste it below')
             continue
-        elif yn_input not in ('y', 'n'):
-            print('Please write "y" or "n" to continue')
+        
+        elif yn_input not in ('y'.lower(), 'n'.lower()):
+            print('Please enter "y" or "n" to continue')
             continue
+
         else:
             get_key = get_api_token()
-            print('Please, store your api key somewhere safe.')
+            print('Remember to always store your api key somewhere safe.')
             print('For security, once the program is closed, your api key is not saved in the program.')
             print('-'*70)            
             params: dict = {
                 'api_token':get_key
             }
+
             while True:
-                print('These are the current options:')
-                print('1. Look for head to head information on the Scottish League;')
-                print('2. Restart the program;')
-                print('3. Exit')
+                print('----------These are the current options:----------')
+                print('1. Look for head to head information on the Scottish Premier League;')
+                print('2. Check the next scheduled games for a team on the Scottish Premier League;')
+                print('R. Restart the program;')                
+                print('x. Exit.')
                 options_input = input('Please, choose one of the available options: ')
+
                 if options_input == '1':
                     get_hth = head_to_head_request()
-                    main_request(get_hth, params)
-                    continue
-                elif options_input == '2':
-                    print('Restarting the program')
+                    head_to_head_info(get_hth, params)
                     time.sleep(2)
+                    continue
+
+                elif options_input == '2':
+                    get_schedules_by_id()
+                    time.sleep(2)
+                    continue
+
+                elif options_input == 'r'.lower():
+                    print('Restarting the program.')
+                    time.sleep(1)
                     main_menu()
-                elif options_input == '3':
+
+                elif options_input == 'x'.lower():
                     print('Closing program.')
                     exit()
+
                 else:
                     print('Enter a valid input.')
                     continue
 
-main_menu()
+if __name__ == '__main__':
+    main_menu()
